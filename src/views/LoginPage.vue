@@ -12,7 +12,7 @@
         <input type="password" name="password" id="password" v-model="password" placeholder="密碼" />
       </label>
 
-      <a href="#" type="submit" id="login" @click="login">登入</a>
+      <a href="#" type="submit" id="login" @click.prevent="login">登入</a>
     </div>
   </div>
 </template>
@@ -138,6 +138,8 @@ const login = () => {
 
   if (username.value === userData.username && password.value === userData.password) {
     alert('登入成功！');
+    console.log('成功');
+    
     router.push('/dashboard'); // 跳轉到 Dashboard
   } else {
     alert('帳號或密碼錯誤');
