@@ -3,16 +3,16 @@
   <div id="binbox">
     <div id="box">
       <img src="https://cdn-icons-png.flaticon.com/512/5264/5264565.png" alt="logo" id="logo" />
-      
+
       <label for="accont">帳號:
-        <input type="text" name="accont" id="accont" v-model="username" placeholder="帳號" />
+        <input type="text" name="accont" id="accont" v-model="username" placeholder="帳號" @keyup.enter="login" />
       </label>
 
       <label for="password">密碼:
-        <input type="password" name="password" id="password" v-model="password" placeholder="密碼" />
+        <input type="password" name="password" id="password" v-model="password" placeholder="密碼" @keyup.enter="login" />
       </label>
 
-      <a href="#" type="submit" id="login" @click.prevent="login">登入</a>
+      <button id="login" @click="login">登入</button>
     </div>
   </div>
 </template>
@@ -126,25 +126,37 @@
 
   
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 
 const username = ref('');
 const password = ref('');
 const router = useRouter();
 
+// ✅ 進入頁面時檢查是否已登入
+onMounted(() => {
+  const isLoggedIn = localStorage.getItem('isLoggedIn');
+  if (isLoggedIn === 'true') {
+    router.push('/dashboard'); // 已登入，跳轉到儀表板
+  }
+});
+
 const login = () => {
   const userData = { username: 'admin', password: '1234' };
 
   if (username.value === userData.username && password.value === userData.password) {
     alert('登入成功！');
-    console.log('成功');
-    
-    router.push('/dashboard'); // 跳轉到 Dashboard
+    console.log('成功，開始跳轉');
+
+    // ✅ 儲存登入狀態
+    localStorage.setItem('isLoggedIn', 'true');
+
+    router.push('/dashboard'); // ✅ 跳轉
   } else {
     alert('帳號或密碼錯誤');
   }
 };
 </script>
+
 
   

@@ -11,6 +11,7 @@
         <li @click="currentView = 'addAccounting'">新增記帳</li>
         <li @click="currentView = 'report'">報表分析</li>
       </ul>
+      <button @click="logout">登出</button>
     </nav>
 
     <!-- 主要內容區 -->
@@ -40,25 +41,31 @@
   </div>
 </template>
 
-<script>
-import { ref } from 'vue';
-import AddAccounting from './AddAccounting.vue'; // 確保路徑正確
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import AddAccounting from './AddAccounting.vue';
 
-export default {
-  components: {
-    AddAccounting,
-  },
-  setup() {
-    const isMenuOpen = ref(false);
-    const currentView = ref('home'); // 預設顯示首頁
+const router = useRouter();
+const isMenuOpen = ref(false);
+const currentView = ref('home'); // 預設顯示首頁
 
-    const toggleMenu = () => {
-      isMenuOpen.value = !isMenuOpen.value;
-    };
-
-    return { isMenuOpen, currentView, toggleMenu };
-  },
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value;
 };
+
+const logout = () => {
+  localStorage.removeItem('isLoggedIn'); // ✅ 清除登入狀態
+  router.push('/'); // ✅ 跳回登入頁面
+};
+
+// ✅ 進入頁面時檢查是否已登入
+onMounted(() => {
+  const isLoggedIn = localStorage.getItem('isLoggedIn');
+  if (isLoggedIn !== 'true') {
+    router.push('/'); // ✅ 未登入，跳回 LoginPage
+  }
+});
 </script>
 
 <style scoped>

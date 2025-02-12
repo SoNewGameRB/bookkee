@@ -5,7 +5,18 @@ import AddAccounting from './views/AddAccounting.vue';
 
 const routes = [
   { path: '/', component: LoginPage },
-  { path: '/dashboard', component: DashboardPage },
+  { 
+    path: '/dashboard',
+    component: DashboardPage,
+    beforeEnter: (to, from, next) => {
+      const isLoggedIn = localStorage.getItem('isLoggedIn');
+      if (isLoggedIn === 'true') {
+        next(); // ✅ 允許進入
+      } else {
+        next('/'); // ❌ 未登入，返回登入頁
+      }
+    }
+  },
   { path: '/add-accounting', component: AddAccounting },
 ];
 
