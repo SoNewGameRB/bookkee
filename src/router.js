@@ -2,7 +2,6 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import LoginPage from './views/LoginPage.vue';
 import DashboardPage from './views/DashboardPage.vue';
 import AddAccounting from './views/AddAccounting.vue';
-
 const routes = [
   { path: '/', component: LoginPage },
   { 

@@ -7,11 +7,12 @@
     <nav :class="['sidebar', { 'open': isMenuOpen }]">
       <h2>儀表板</h2>
       <ul>
-        <li @click="currentView = 'home'">首頁</li>
-        <li @click="currentView = 'addAccounting'">新增記帳</li>
-        <li @click="currentView = 'report'">報表分析</li>
+        <li @click="currentView = 'home'">🏠 首頁</li>
+        <li @click="currentView = 'addAccounting'">📒 新增記帳</li>
+        <li @click="currentView = 'report'">📊 類別統計</li>
+        <li @click="currentView = 'summary'">📈 月結餘</li>
       </ul>
-      <button @click="logout">登出</button>
+      <button @click="logout">🚪 登出</button>
     </nav>
 
     <!-- 主要內容區 -->
@@ -27,11 +28,8 @@
         </div>
 
         <AddAccounting v-if="currentView === 'addAccounting'" />
-
-        <div v-if="currentView === 'report'">
-          <h2>報表分析</h2>
-          <p>這裡會顯示收支統計圖表。</p>
-        </div>
+        <ReportPage v-if="currentView === 'report'" />
+        <DashboardSummary v-if="currentView === 'summary'" />
       </main>
 
       <footer>
@@ -45,6 +43,8 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import AddAccounting from './AddAccounting.vue';
+import ReportPage from './ReportPage.vue';
+import DashboardSummary from './DashboardSummary.vue'; // 新增「月結餘」組件
 
 const router = useRouter();
 const isMenuOpen = ref(false);
@@ -54,16 +54,18 @@ const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value;
 };
 
+// ✅ 修正 Logout，確保狀態刷新
 const logout = () => {
-  localStorage.removeItem('isLoggedIn'); // ✅ 清除登入狀態
-  router.push('/'); // ✅ 跳回登入頁面
+  localStorage.removeItem('isLoggedIn'); 
+  router.push('/'); 
+  location.reload(); 
 };
 
-// ✅ 進入頁面時檢查是否已登入
+// ✅ 檢查登入狀態
 onMounted(() => {
   const isLoggedIn = localStorage.getItem('isLoggedIn');
   if (isLoggedIn !== 'true') {
-    router.push('/'); // ✅ 未登入，跳回 LoginPage
+    router.push('/'); 
   }
 });
 </script>
@@ -87,12 +89,6 @@ onMounted(() => {
   top: 0;
   overflow-y: auto;
   transition: transform 0.3s ease-in-out;
-}
-
-/* 導覽列樣式 */
-.sidebar h2 {
-  font-size: 20px;
-  margin-bottom: 10px;
 }
 
 .sidebar ul {
@@ -119,47 +115,21 @@ onMounted(() => {
   padding: 20px;
 }
 
-/* 頁面標頭 */
-header {
-  background-color: #ecf0f1;
-  padding: 15px;
-  border-bottom: 2px solid #ccc;
-}
-
-/* 主要內容區 */
-main {
-  padding: 20px;
-  background-color: #f8f9fa;
-  min-height: 80vh;
-}
-
-/* 頁腳 */
-footer {
-  text-align: center;
-  padding: 10px;
-  background-color: #ecf0f1;
-}
-
-/* ========== RWD 響應式設計 ========== */
-/* 小螢幕 (手機版) */
+/* RWD 響應式設計 */
 @media (max-width: 768px) {
-  /* 隱藏左側導覽列 */
   .sidebar {
     transform: translateX(-100%);
     width: 250px;
   }
 
-  /* 主要內容區域不再受 margin-left 限制 */
   .content {
     margin-left: 0;
   }
 
-  /* 當導覽列開啟時，滑出來 */
   .sidebar.open {
     transform: translateX(0);
   }
 
-  /* 漢堡選單按鈕 */
   .menu-btn {
     position: fixed;
     top: 10px;
