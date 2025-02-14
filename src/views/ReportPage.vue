@@ -152,7 +152,7 @@ watch(selectedMonth, updateCharts);
   max-width: 900px;
   margin: auto;
   text-align: center;
-  padding: 20px;
+  padding-bottom: 100px;
 }
 
 .filter-box {
@@ -177,7 +177,7 @@ watch(selectedMonth, updateCharts);
 .chart-box {
   width: 45%;
   min-width: 300px;
-  padding: 15px;
+  padding: 10px;
   background: #fff;
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
   border-radius: 10px;

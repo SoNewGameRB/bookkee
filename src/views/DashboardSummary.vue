@@ -106,7 +106,7 @@
   const categorySpending = ref({});
   
   const filteredBudgetHistory = computed(() => {
-    console.log(filteredBudgetHistory);
+    
 
   return budgetHistory.value.filter(entry => entry.month === selectedMonth.value);
   
@@ -211,6 +211,7 @@
     max-width: 900px;
     margin: auto;
     padding: 20px;
+    padding-bottom: 100px;
   }
   
   .top-section {

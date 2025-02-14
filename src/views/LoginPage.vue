@@ -13,36 +13,54 @@
       </label>
 
       <button id="login" @click="login">登入</button>
+      <button id="guest-mode" @click="guestLogin">訪客模式</button>
     </div>
   </div>
 </template>
 
 
 <style scoped>
-/* 設定整個畫面置中 */
+/* 讓畫面置中，並使用漸層背景 */
 #binbox {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
   padding: 20px;
-  background-color: #f0f0f0;
+  background: linear-gradient(135deg, #f0f0f0, #dfe9f3);
 }
 
 /* 登入框 */
 #box {
   width: 90%;
-  max-width: 400px; /* 限制最大寬度 */
-  background-color: #c0c0c0;
-  border: solid 1px black;
+  max-width: 400px;
+  background-color: #ffffff;
   border-radius: 15px;
-  box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.6);
-  color: black;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
+  color: #333;
   font-size: 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
+  padding: 25px;
+  transition: transform 0.3s ease-in-out;
+}
+
+#box:hover {
+  transform: scale(1.02);
+}
+
+/* Logo 圖片 */
+#logo {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 15px;
+  cursor: pointer;
+  transition: transform 0.3s ease-in-out;
+}
+
+#logo:hover {
+  transform: scale(1.1);
 }
 
 /* 輸入框與標籤 */
@@ -51,76 +69,93 @@
   display: flex;
   flex-direction: column;
   font-size: 16px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  font-weight: 500;
 }
 
 #box input {
-  border-radius: 10px;
+  border-radius: 8px;
   font-size: 16px;
-  padding: 8px;
-  border: 1px solid #333;
+  padding: 10px;
+  border: 1px solid #ccc;
   width: 100%;
   box-sizing: border-box;
+  transition: border 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
 }
 
-/* Logo 圖片 */
-#logo {
-  width: 120px;
-  height: 120px;
-  margin-bottom: 20px;
-  cursor: pointer;
-  transition: filter 0.5s ease-in-out;
-}
-
-#logo:hover {
-  filter: invert(60%) sepia(100%) hue-rotate(200deg);
+#box input:focus {
+  border-color: #4a90e2;
+  box-shadow: 0px 0px 8px rgba(74, 144, 226, 0.4);
+  outline: none;
 }
 
 /* 登入按鈕 */
 #login {
   display: block;
-  border: solid 2px black;
-  border-radius: 25px;
+  border: none;
+  border-radius: 8px;
   width: 100%;
   max-width: 300px;
   text-align: center;
-  padding: 10px;
+  padding: 12px;
   cursor: pointer;
   font-weight: 600;
-  transition: 0.4s;
-  background-color: white;
+  font-size: 16px;
+  transition: all 0.3s ease-in-out;
+  background-color: #4a90e2;
+  color: white;
   text-decoration: none;
-  color: black;
-  margin-top: 10px;
+  margin-top: 15px;
+  box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.1);
 }
 
 #login:hover {
-  background-color: #8080ff;
+  background-color: #357abd;
+  box-shadow: 0px 5px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+/* 訪客模式按鈕（右上角） */
+#guest-mode {
+  position: absolute;
+  margin: 0px 0px 0px 220px;
+  /* width: 100px; */
+  background-color: #6c757d;
   color: white;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.3s;
 }
 
-/* ========== RWD 響應式設計 ========== */
-/* 小螢幕（手機） */
+#guest-mode:hover {
+  background-color: #495057;
+}
+
+/* 響應式設計 */
 @media (max-width: 768px) {
   #box {
-    width: 95%; /* 讓表單更貼近螢幕寬度 */
+    width: 95%;
+    padding: 20px;
   }
 
   #logo {
-    width: 100px; /* 縮小 Logo */
-    height: 100px;
+    width: 80px;
+    height: 80px;
   }
 
   #box input {
     font-size: 14px;
-    padding: 6px;
+    padding: 8px;
   }
 
   #login {
-    font-size: 16px;
-    padding: 8px;
+    font-size: 15px;
+    padding: 10px;
   }
 }
+
 </style>
 
 
@@ -155,6 +190,13 @@ const login = () => {
   } else {
     alert('帳號或密碼錯誤');
   }
+};
+// ✅ 訪客模式登入
+const guestLogin = () => {
+  alert('以訪客模式登入！');
+  localStorage.setItem('isLoggedIn', 'true');
+  localStorage.setItem('userRole', 'guest'); // ✅ 設定訪客身份
+  router.push('/dashboard');
 };
 </script>
 

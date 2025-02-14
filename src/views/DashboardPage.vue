@@ -1,21 +1,22 @@
 <template>
   <div class="container">
-    <!-- 漢堡選單按鈕（小螢幕） -->
-    <button class="menu-btn" @click="toggleMenu">☰</button>
-
-    <!-- 左側導覽列 -->
-    <nav :class="['sidebar', { 'open': isMenuOpen }]">
+    <!-- 📌 桌機版左側導覽列 -->
+    <nav v-if="!isMobile" :class="['sidebar', { 'open': isMenuOpen }]">
       <h2>儀表板</h2>
       <ul>
-        <li @click="currentView = 'home'">🏠 首頁</li>
-        <li @click="currentView = 'addAccounting'">📒 新增記帳</li>
-        <li @click="currentView = 'report'">📊 類別統計</li>
-        <li @click="currentView = 'summary'">📈 月結餘</li>
+        <li
+          v-for="(shortcut, index) in shortcuts"
+          :key="index"
+          @click="changeView(shortcut.view)"
+          :class="{ active: currentView === shortcut.view }"
+        >
+          {{ shortcut.icon }} {{ shortcut.name }}
+        </li>
       </ul>
       <button @click="logout">🚪 登出</button>
     </nav>
 
-    <!-- 主要內容區 -->
+    <!-- 📌 主要內容區 -->
     <div class="content">
       <header>
         <h2>歡迎來到後台！</h2>
@@ -23,7 +24,7 @@
 
       <main>
         <div v-if="currentView === 'home'">
-          <h2>這是首頁</h2>
+          <h2>🏠 首頁</h2>
           <p>歡迎來到記帳系統！</p>
         </div>
 
@@ -33,14 +34,29 @@
       </main>
 
       <footer>
-        <p>版權所有</p>
+        <p>丞 € 版權所有</p>
       </footer>
     </div>
+
+    <!-- 📌 手機版底部導航列 -->
+    <nav class="bottom-nav" v-if="isMobile">
+      <ul>
+        <li
+          v-for="(shortcut, index) in shortcuts"
+          :key="index"
+          @click="changeView(shortcut.view)"
+          :class="{ active: currentView === shortcut.view }"
+        >
+          <span>{{ shortcut.icon }}</span>
+          <p>{{ shortcut.name }}</p>
+        </li>
+      </ul>
+    </nav>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import AddAccounting from './AddAccounting.vue';
 import ReportPage from './ReportPage.vue';
@@ -50,36 +66,51 @@ const router = useRouter();
 const isMenuOpen = ref(false);
 const currentView = ref('home'); // 預設顯示首頁
 
-const toggleMenu = () => {
-  isMenuOpen.value = !isMenuOpen.value;
+// ✅ 修正 isMobile，確保動態變更
+const isMobile = ref(window.innerWidth < 768);
+
+const shortcuts = ref([
+  { name: '首頁', icon: '🏠', view: 'home' },
+  { name: '新增記帳', icon: '📒', view: 'addAccounting' },
+  { name: '類別統計', icon: '📊', view: 'report' },
+  { name: '月結餘', icon: '📈', view: 'summary' }
+]);
+
+const changeView = (view) => {
+  currentView.value = view;
 };
 
 // ✅ 修正 Logout，確保狀態刷新
 const logout = () => {
-  localStorage.removeItem('isLoggedIn'); 
-  router.push('/'); 
-  location.reload(); 
+  localStorage.removeItem('isLoggedIn');
+  router.push('/');
+  location.reload();
 };
 
-// ✅ 檢查登入狀態
+// ✅ 確保 isMobile 可動態更新
 onMounted(() => {
+  window.addEventListener('resize', () => {
+    isMobile.value = window.innerWidth < 768;
+  });
+
   const isLoggedIn = localStorage.getItem('isLoggedIn');
   if (isLoggedIn !== 'true') {
-    router.push('/'); 
+    router.push('/');
   }
 });
 </script>
 
 <style scoped>
-/* 讓整個畫面使用 Flexbox */
+/* 主要佈局 */
 .container {
   display: flex;
   height: 100vh;
+  
 }
 
-/* 左側導覽列 */
+/* 桌機版左側導覽列 */
 .sidebar {
-  width: 200px;
+  width: 150px;
   background-color: #2c3e50;
   color: white;
   padding: 20px;
@@ -104,44 +135,77 @@ onMounted(() => {
   transition: background 0.3s;
 }
 
-.sidebar ul li:hover {
+.sidebar ul li:hover,
+.sidebar ul li.active {
   background: #1abc9c;
 }
 
-/* 主要內容區域 */
+/* 主要內容區 */
 .content {
   flex-grow: 1;
   margin-left: 200px;
-  padding: 20px;
+  padding: 0px 0px 100px 0px ;
 }
 
-/* RWD 響應式設計 */
+/* 📌 手機版底部導航列 */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: #2c3e50;
+  padding: 10px 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 2px solid #1abc9c;
+}
+
+.bottom-nav ul {
+  display: flex;
+  width: 100%;
+  justify-content: space-around;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.bottom-nav li {
+  text-align: center;
+  color: white;
+  cursor: pointer;
+  flex: 1;
+  padding: 8px;
+  transition: background 0.3s;
+}
+
+.bottom-nav li.active {
+  background: #1abc9c;
+}
+
+.bottom-nav li:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.bottom-nav li span {
+  display: block;
+  font-size: 20px;
+}
+
+.bottom-nav li p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* 📌 RWD 響應式設計 */
 @media (max-width: 768px) {
   .sidebar {
-    transform: translateX(-100%);
-    width: 250px;
+    display: none;
   }
 
   .content {
     margin-left: 0;
-  }
-
-  .sidebar.open {
-    transform: translateX(0);
-  }
-
-  .menu-btn {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    background-color: #1abc9c;
-    color: white;
-    border: none;
-    font-size: 24px;
-    padding: 10px;
-    cursor: pointer;
-    z-index: 1000;
-    border-radius: 5px;
+    padding-bottom: 80px; /* 預留空間給底部導覽列 */
   }
 }
 </style>
