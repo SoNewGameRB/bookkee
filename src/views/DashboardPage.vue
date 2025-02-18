@@ -50,6 +50,11 @@
           <span>{{ shortcut.icon }}</span>
           <p>{{ shortcut.name }}</p>
         </li>
+        <!-- ✅ 新增登出按鈕 -->
+    <li @click="logout">
+      <span>🚪</span>
+      <p>登出</p>
+    </li>
       </ul>
     </nav>
   </div>

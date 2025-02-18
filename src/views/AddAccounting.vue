@@ -178,17 +178,58 @@ const filteredRecords = computed(() => {
 
 // **新增記帳**
 const addRecord = () => {
+  if (!amount.value || !date.value || !subCategory.value) {
+    alert("⚠️ 請填寫完整的記帳資料！");
+    return;
+  }
+
+  // ✅ 如果使用者選擇 "new"，則替換為輸入的 `newCategory`
+  let finalCategory = subCategory.value === "new" ? newCategory.value.trim() : subCategory.value;
+
+  if (!finalCategory) {
+    alert("⚠️ 類別名稱不能為空！");
+    return;
+  }
+
   const newRecord = {
     amount: parseFloat(amount.value),
     category: category.value,
-    subCategory: subCategory.value,
+    subCategory: finalCategory, // ✅ 使用正確的類別名稱
     date: date.value,
     note: note.value,
   };
 
+  // ✅ 更新記帳紀錄
   records.value.push(newRecord);
   localStorage.setItem('records', JSON.stringify(records.value));
+
+  // ✅ 若有新增類別，確保記錄進 `localStorage`
+  if (!availableCategories.value.includes(finalCategory)) {
+    if (category.value === "income") {
+      incomeCategories.value.push(finalCategory);
+      localStorage.setItem('incomeCategories', JSON.stringify(incomeCategories.value));
+    } else {
+      expenseCategories.value.push(finalCategory);
+      localStorage.setItem('expenseCategories', JSON.stringify(expenseCategories.value));
+    }
+  }
+
+  // ✅ 清空輸入欄位
+  amount.value = '';
+  subCategory.value = '';
+  newCategory.value = '';
+  date.value = '';
+  note.value = '';
+  showNewCategoryInput.value = false;
+
+  // ✅ 顯示通知
+  alert("✅ 記帳成功！");
+
+  // ✅ 重新載入過濾後的記錄
+  updateFilteredRecords();
 };
+
+
 // **刪除記帳**
 const deleteRecord = (index) => {
   records.value.splice(index, 1);
