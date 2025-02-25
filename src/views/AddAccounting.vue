@@ -3,6 +3,8 @@
     <div class="left-section">
       <div class="box">
         <h2>新增記帳</h2>
+        <!-- ✅ 新增總金額顯示 -->
+        <div class="total-amount">總金額：{{ totalAmount }} 元</div>
         <form @submit.prevent="addRecord" class="form">
           
           <div class="form-group">
@@ -132,6 +134,15 @@ onMounted(() => {
 const availableCategories = computed(() => {
   return category.value === 'income' ? incomeCategories.value : expenseCategories.value;
 });
+// **計算記帳總金額（收入 - 支出）**
+const totalAmount = computed(() => {
+  return records.value.reduce((sum, record) => {
+    return record.category === 'income' 
+      ? sum + record.amount  // 收入加總
+      : sum - record.amount; // 支出扣除
+  }, 0);
+});
+
 
 // **檢查是否選擇「新增類別」**
 const checkNewCategory = () => {
@@ -227,6 +238,8 @@ const addRecord = () => {
 
   // ✅ 重新載入過濾後的記錄
   updateFilteredRecords();
+  
+  
 };
 
 
@@ -360,4 +373,12 @@ const deleteRecord = (index) => {
   background: #6c757d;
   color: white;
 }
+
+.total-amount {
+  font-size: 18px;
+  font-weight: bold;
+  color: #28a745; /* 綠色代表財務 */
+  margin-bottom: 10px;
+}
+
 </style>
