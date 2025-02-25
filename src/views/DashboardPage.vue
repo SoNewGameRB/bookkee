@@ -26,6 +26,7 @@
         <div v-if="currentView === 'home'">
           <h2>🏠 首頁</h2>
           <p>歡迎來到記帳系統！</p>
+          <Calendar></Calendar>
         </div>
 
         <AddAccounting v-if="currentView === 'addAccounting'" />
@@ -66,7 +67,7 @@ import { useRouter } from 'vue-router';
 import AddAccounting from './AddAccounting.vue';
 import ReportPage from './ReportPage.vue';
 import DashboardSummary from './DashboardSummary.vue'; // 新增「月結餘」組件
-
+import Calendar from './Calendar.vue';
 const router = useRouter();
 const isMenuOpen = ref(false);
 const currentView = ref('home'); // 預設顯示首頁
