@@ -2,18 +2,13 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <title>Redirecting...</title>
+  <meta http-equiv="refresh" content="0; url=/bookkee/">
   <script>
-    // 取得當前路徑
-    const pathname = window.location.pathname;
-
-    // 檢查是否已經在 "/bookkee/"
-    if (!pathname.startsWith("/bookkee/")) {
-      window.location.replace("/bookkee" + pathname + window.location.search);
-    }
+    window.location.replace("/bookkee" + window.location.pathname + window.location.search);
   </script>
+  <title>Redirecting...</title>
 </head>
 <body>
-  <p>頁面不存在，正在跳轉...</p>
+  <p>404 頁面不存在，正在跳轉...</p>
 </body>
 </html>
