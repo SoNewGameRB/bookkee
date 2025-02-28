@@ -3,5 +3,5 @@ import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
   plugins: [vue()],
-  base: './', // ✅ 確保與 GitHub Pages 網址對應
+  base: "/bookkee/", // 🔥 這裡要設定為 GitHub Pages 的 repo 名稱
 });
