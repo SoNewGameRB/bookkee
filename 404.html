@@ -2,9 +2,14 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=/bookkee">
   <script>
-    window.location.replace("/bookkee" + window.location.pathname);
+    // 確保只在 GitHub Pages 上執行
+    if (window.location.hostname.includes("github.io")) {
+      const path = window.location.pathname;
+      if (!path.startsWith("/bookkee")) {
+        window.location.replace("/bookkee" + path);
+      }
+    }
   </script>
   <title>Redirecting...</title>
 </head>
