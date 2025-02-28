@@ -2,18 +2,13 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url=/bookkee/">
   <script>
-    // 確保只在 GitHub Pages 上執行
-    if (window.location.hostname.includes("github.io")) {
-      const path = window.location.pathname;
-      if (!path.startsWith("/bookkee")) {
-        window.location.replace("/bookkee" + path);
-      }
-    }
+    window.location.replace("/bookkee" + window.location.pathname + window.location.search);
   </script>
   <title>Redirecting...</title>
 </head>
 <body>
-  <p>正在跳轉...</p>
+  <p>404 頁面不存在，正在跳轉...</p>
 </body>
 </html>
