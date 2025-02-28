@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'; // ✅ 改成 createWebHistory
+import { createRouter, createWebHashHistory  } from 'vue-router'; // ✅ 改成 createWebHistory
 import LoginPage from './views/LoginPage.vue';
 import DashboardPage from './views/DashboardPage.vue';
 import AddAccounting from './views/AddAccounting.vue';
@@ -21,8 +21,11 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHistory(), // ✅ 改成 history 模式
-  routes,
+  history: createWebHashHistory(), // ✅ 確保 GitHub Pages 可運行
+  routes: [
+    { path: '/', component: () => import('./views/Login.vue') },
+    { path: '/dashboard', component: () => import('./views/Dashboard.vue') },
+  ],
 });
 
 export default router;
