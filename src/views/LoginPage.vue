@@ -14,6 +14,9 @@
 
       <button id="login" @click="login">登入</button>
       <button id="guest-mode" @click="guestLogin">訪客模式</button>
+
+      <!-- ✅ Google 登入按鈕 -->
+      <div id="googleSignInButton"></div>
     </div>
   </div>
 </template>
@@ -161,42 +164,73 @@
 
   
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 
-const username = ref('');
-const password = ref('');
+const username = ref("");
+const password = ref("");
 const router = useRouter();
+const clientId = "你的 Google Client ID";
 
 // ✅ 進入頁面時檢查是否已登入
 onMounted(() => {
-  const isLoggedIn = localStorage.getItem('isLoggedIn');
-  if (isLoggedIn === 'true') {
-    router.push('/dashboard'); // 已登入，跳轉到儀表板
+  const isLoggedIn = localStorage.getItem("isLoggedIn");
+  if (isLoggedIn === "true") {
+    router.push("/dashboard"); // 已登入，跳轉到儀表板
   }
+
+  // ✅ 初始化 Google 登入
+  google.accounts.id.initialize({
+    client_id: clientId,
+    callback: handleCredentialResponse,
+  });
+
+  google.accounts.id.renderButton(
+    document.getElementById("googleSignInButton"),
+    { theme: "outline", size: "large" }
+  );
 });
 
+// ✅ Google 登入回調函式
+const handleCredentialResponse = (response) => {
+  console.log("Google 登入成功:", response);
+
+  // 解析 Google JWT Token
+  const userData = JSON.parse(atob(response.credential.split(".")[1]));
+  console.log("Google 使用者:", userData);
+
+  // ✅ 儲存登入狀態
+  localStorage.setItem("isLoggedIn", "true");
+  localStorage.setItem("userRole", "google");
+  localStorage.setItem("userName", userData.name);
+
+  // ✅ 跳轉至 Dashboard
+  router.push("/dashboard");
+};
+
+// ✅ 手動帳密登入
 const login = () => {
-  const userData = { username: 'admin', password: '1234' };
+  const userData = { username: "admin", password: "1234" };
 
   if (username.value === userData.username && password.value === userData.password) {
-    alert('登入成功！');
-    console.log('成功，開始跳轉');
+    alert("登入成功！");
+    console.log("成功，開始跳轉");
 
     // ✅ 儲存登入狀態
-    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem("isLoggedIn", "true");
 
-    router.push('/dashboard'); // ✅ 跳轉
+    router.push("/dashboard"); // ✅ 跳轉
   } else {
-    alert('帳號或密碼錯誤');
+    alert("帳號或密碼錯誤");
   }
 };
+
 // ✅ 訪客模式登入
 const guestLogin = () => {
-  alert('以訪客模式登入！');
-  localStorage.setItem('isLoggedIn', 'true');
-  localStorage.setItem('userRole', 'guest'); // ✅ 設定訪客身份
-  router.push('/dashboard');
+  alert("以訪客模式登入！");
+  localStorage.setItem("isLoggedIn", "true");
+  localStorage.setItem("userRole", "guest"); // ✅ 設定訪客身份
+  router.push("/dashboard");
 };
 </script>
 

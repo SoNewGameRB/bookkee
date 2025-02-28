@@ -1,7 +1,8 @@
-import { createRouter, createWebHashHistory } from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router'; // ✅ 改成 createWebHistory
 import LoginPage from './views/LoginPage.vue';
 import DashboardPage from './views/DashboardPage.vue';
 import AddAccounting from './views/AddAccounting.vue';
+
 const routes = [
   { path: '/', component: LoginPage },
   { 
@@ -20,7 +21,7 @@ const routes = [
 ];
 
 const router = createRouter({
-  history: createWebHashHistory(), // ✅ 使用 Hash 模式，確保 GitHub Pages 可運行
+  history: createWebHistory(), // ✅ 改成 history 模式
   routes,
 });
 
