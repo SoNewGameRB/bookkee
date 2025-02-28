@@ -1,13 +1,10 @@
-import { createRouter, createWebHashHistory  } from 'vue-router'; // ✅ 改成 createWebHistory
-import LoginPage from './views/LoginPage.vue';
-import DashboardPage from './views/DashboardPage.vue';
-import AddAccounting from './views/AddAccounting.vue';
+import { createRouter, createWebHashHistory } from 'vue-router'; // ✅ 使用 Hash 模式，確保 GitHub Pages 可運行
 
 const routes = [
-  { path: '/', component: LoginPage },
+  { path: '/', component: () => import('@/views/LoginPage.vue') }, // ✅ 動態載入
   { 
     path: '/dashboard',
-    component: DashboardPage,
+    component: () => import('@/views/DashboardPage.vue'),
     beforeEnter: (to, from, next) => {
       const isLoggedIn = localStorage.getItem('isLoggedIn');
       if (isLoggedIn === 'true') {
@@ -17,15 +14,12 @@ const routes = [
       }
     }
   },
-  { path: '/add-accounting', component: AddAccounting },
+  { path: '/add-accounting', component: () => import('@/views/AddAccounting.vue') }, // ✅ 確保這個頁面存在
 ];
 
 const router = createRouter({
-  history: createWebHashHistory(), // ✅ 確保 GitHub Pages 可運行
-  routes: [
-    { path: '/', component: () => import('./views/LoginPage.vue') },
-    { path: '/dashboard', component: () => import('./views/Dashboard.vue') },
-  ],
+  history: createWebHashHistory(), // ✅ 確保 GitHub Pages 運行
+  routes,
 });
 
 export default router;
