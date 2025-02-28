@@ -1,4 +1,3 @@
-
 <template>
   <div id="binbox">
     <div id="box">
@@ -20,7 +19,7 @@
     </div>
   </div>
 </template>
-
+  
 
 <style scoped>
 /* 讓畫面置中，並使用漸層背景 */
@@ -170,7 +169,7 @@ import { useRouter } from "vue-router";
 const username = ref("");
 const password = ref("");
 const router = useRouter();
-const clientId = "你的 Google Client ID";
+const clientId = "188944110530-5dupttvorlfgbb87455u0mueat8ov8qv.apps.googleusercontent.com"; // ✅ 替換成你的 Client ID
 
 // ✅ 進入頁面時檢查是否已登入
 onMounted(() => {
@@ -179,16 +178,20 @@ onMounted(() => {
     router.push("/dashboard"); // 已登入，跳轉到儀表板
   }
 
-  // ✅ 初始化 Google 登入
-  google.accounts.id.initialize({
-    client_id: clientId,
-    callback: handleCredentialResponse,
-  });
+  // ✅ 確保 `google` 物件存在
+  if (window.google && window.google.accounts) {
+    google.accounts.id.initialize({
+      client_id: clientId,
+      callback: handleCredentialResponse,
+    });
 
-  google.accounts.id.renderButton(
-    document.getElementById("googleSignInButton"),
-    { theme: "outline", size: "large" }
-  );
+    google.accounts.id.renderButton(
+      document.getElementById("googleSignInButton"),
+      { theme: "outline", size: "large" }
+    );
+  } else {
+    console.error("Google SDK 未載入，請確認 `index.html` 是否包含 `gsi/client`");
+  }
 });
 
 // ✅ Google 登入回調函式
@@ -214,7 +217,6 @@ const login = () => {
 
   if (username.value === userData.username && password.value === userData.password) {
     alert("登入成功！");
-    console.log("成功，開始跳轉");
 
     // ✅ 儲存登入狀態
     localStorage.setItem("isLoggedIn", "true");

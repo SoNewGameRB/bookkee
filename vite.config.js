@@ -4,17 +4,10 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [vue()],
-  base: "/bookkee/", // ✅ 必須設置為 GitHub Pages 的 Repo 名稱
+  base: process.env.NODE_ENV === "production" ? "/bookkee/" : "/", // 🔥 讓本地端不加 `/bookkee/`
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "src"), // ✅ 確保 `@/` 可以正常解析
-    },
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: undefined, // ✅ 避免 Vite 產生 `_plugin-vue_export-helper.js` 這種奇怪的路徑
-      },
+      "@": path.resolve(__dirname, "src"),
     },
   },
 });
