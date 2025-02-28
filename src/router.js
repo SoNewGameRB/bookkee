@@ -1,7 +1,7 @@
-import { createRouter, createWebHistory, createWebHashHistory } from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router';
 
 const router = createRouter({
-  history: process.env.NODE_ENV === "production" ? createWebHashHistory() : createWebHistory(),
+  history: createWebHistory("/bookkee/"), // ✅ 確保 GitHub Pages 正確處理
   routes: [
     { path: '/', component: () => import('./views/LoginPage.vue') },
     { path: '/dashboard', component: () => import('./views/DashboardPage.vue') },

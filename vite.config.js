@@ -1,13 +1,14 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import path from 'path';
 
 export default defineConfig({
   plugins: [vue()],
-  base: process.env.NODE_ENV === "production" ? "/bookkee/" : "/", // 🔥 讓本地端不加 `/bookkee/`
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
+  base: './', // ✅ 確保 GitHub Pages 運作
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined, // ✅ 避免 Vite 拆分內部 Vue 工具，確保 _plugin-vue_export-helper.js 存在
+      },
     },
   },
 });
