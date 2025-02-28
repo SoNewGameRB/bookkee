@@ -23,7 +23,7 @@ const routes = [
 const router = createRouter({
   history: createWebHashHistory(), // ✅ 確保 GitHub Pages 可運行
   routes: [
-    { path: '/', component: () => import('./views/Login.vue') },
+    { path: '/', component: () => import('./views/LoginPage.vue') },
     { path: '/dashboard', component: () => import('./views/Dashboard.vue') },
   ],
 });
