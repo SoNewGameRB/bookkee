@@ -56,6 +56,9 @@
 
 <script setup>
 import { ref, onMounted, watch, nextTick, computed } from 'vue';
+import { collection, getDocs } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { db } from '../firebase.js';
 import Chart from 'chart.js/auto';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
@@ -66,12 +69,36 @@ const incomeChartRef = ref(null);
 
 const records = ref([]);
 const selectedMonth = ref(new Date().toISOString().slice(0, 7));
-const displayMode = ref('combined'); // 預設為混合模式
-const chartType = ref('pie'); // 預設顯示圓餅圖
+const displayMode = ref('combined');
+const chartType = ref('pie');
 
 let combinedChart = null;
 let expenseChart = null;
 let incomeChart = null;
+
+// 🔥 **取得使用者 ID**
+const userId = ref(null);
+
+// 🔥 **從 Firebase Firestore 取得記帳資料**
+const fetchRecords = async (userId) => {
+  if (!userId) {
+    console.error('❌ 錯誤: userId 未提供');
+    return;
+  }
+
+  try {
+    const querySnapshot = await getDocs(collection(db, 'users', userId, 'records'));
+    records.value = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    console.log("✅ Firestore 讀取成功:", records.value);
+    updateCharts(); // 確保讀取後立即更新圖表
+  } catch (error) {
+    console.error('🔥 讀取 Firestore 錯誤:', error);
+  }
+};
 
 // 📌 計算當月的記帳紀錄
 const filteredRecords = computed(() => {
@@ -171,18 +198,30 @@ const updateCharts = async () => {
   }
 };
 
+// 🔥 **當元件掛載時，取得 Firestore 記帳資料**
 onMounted(() => {
-  const savedRecords = localStorage.getItem('records');
-  if (savedRecords) {
-    records.value = JSON.parse(savedRecords);
-  }
-  updateCharts();
+  const auth = getAuth();
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      userId.value = user.uid;
+      fetchRecords(user.uid);
+    } else {
+      console.warn("⚠️ 尚未登入，無法讀取 Firestore 記帳資料");
+    }
+  });
 });
 
-watch(selectedMonth, updateCharts);
+// 🔥 **當月份變更時，自動更新圖表**
+watch(selectedMonth, async () => {
+  if (userId.value) {
+    await fetchRecords(userId.value);
+  }
+});
+
 watch(displayMode, updateCharts);
 watch(chartType, updateCharts);
 </script>
+
 
 
 

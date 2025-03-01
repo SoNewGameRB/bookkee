@@ -94,63 +94,106 @@
   </template>
   
   <script setup>
-  import { ref, onMounted, computed } from 'vue';
-  
-  // **初始化數據**
-  const records = ref([]);
-  const selectedMonth = ref(new Date().toISOString().slice(0, 7));
-  const selectedPercentage = ref("70");
-  const customBudget = ref(0);
-  const budget = ref(0);
-  const budgetHistory = ref([]);
-  const categorySpending = ref({});
-  
-  const filteredBudgetHistory = computed(() => {
-    
+  import { ref, onMounted, computed, watch } from 'vue';
+import { collection, getDocs, setDoc, doc } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { db } from '../firebase.js';
 
-  return budgetHistory.value.filter(entry => entry.month === selectedMonth.value);
-  
+// **初始化數據**
+const records = ref([]);
+const selectedMonth = ref(new Date().toISOString().slice(0, 7));
+const selectedPercentage = ref("70");
+const customBudget = ref(0);
+const budget = ref(0);
+const budgetHistory = ref([]); // ✅ 確保為空陣列，避免 undefined
+const categorySpending = ref({});
+const userId = ref(null);
+
+// 🔥 **從 Firestore 取得記帳資料**
+const fetchRecords = async (userId) => {
+  if (!userId) {
+    console.error('❌ 錯誤: userId 未提供');
+    return;
+  }
+
+  try {
+    const querySnapshot = await getDocs(collection(db, 'users', userId, 'records'));
+    records.value = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    console.log("✅ Firestore 記帳資料讀取成功:", records.value);
+  } catch (error) {
+    console.error('🔥 讀取 Firestore 記帳資料錯誤:', error);
+  }
+};
+
+// 🔥 **從 Firestore 取得預算歷史**
+const fetchBudgetHistory = async (userId) => {
+  if (!userId) {
+    console.error('❌ 錯誤: userId 未提供');
+    return;
+  }
+
+  try {
+    const querySnapshot = await getDocs(collection(db, 'users', userId, 'budgetHistory'));
+    budgetHistory.value = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) || [];
+    console.log("✅ Firestore 預算歷史讀取成功:", budgetHistory.value);
+  } catch (error) {
+    console.error('🔥 讀取 Firestore 預算歷史錯誤:', error);
+    budgetHistory.value = []; // ✅ 避免 undefined 錯誤
+  }
+};
+
+// **計算收入與支出**
+const totalIncome = computed(() => {
+  return records.value
+    .filter(record => record.category === 'income' && record.date.startsWith(selectedMonth.value))
+    .reduce((sum, record) => sum + record.amount, 0);
 });
-  // **計算收入與支出**
-  const totalIncome = computed(() => {
-    return records.value
-      .filter(record => record.category === 'income' && record.date.startsWith(selectedMonth.value))
-      .reduce((sum, record) => sum + record.amount, 0);
-  });
-  
-  const totalExpense = computed(() => {
-    return records.value
-      .filter(record => record.category === 'expense' && record.date.startsWith(selectedMonth.value))
-      .reduce((sum, record) => sum + record.amount, 0);
-  });
-  
-  const remainingBalance = computed(() => totalIncome.value - totalExpense.value);
-  const budgetUsage = computed(() => (budget.value > 0 ? ((totalExpense.value / budget.value) * 100).toFixed(0) : 0));
-  const budgetExceeded = computed(() => totalExpense.value > budget.value);
-  
-  // **建議減少的類別**
-  const suggestedCategories = computed(() => {
-    if (!budgetExceeded.value) return [];
-    return Object.entries(categorySpending.value)
-      .sort((a, b) => b[1] - a[1])
-      .map(([category]) => category)
-      .slice(0, 2);
-  });
-  
-  // **更新預算**
-  const updateBudget = () => {
+
+const totalExpense = computed(() => {
+  return records.value
+    .filter(record => record.category === 'expense' && record.date.startsWith(selectedMonth.value))
+    .reduce((sum, record) => sum + record.amount, 0);
+});
+
+const remainingBalance = computed(() => totalIncome.value - totalExpense.value);
+const budgetUsage = computed(() => (budget.value > 0 ? ((totalExpense.value / budget.value) * 100).toFixed(0) : 0));
+const budgetExceeded = computed(() => totalExpense.value > budget.value);
+
+// **建議減少的類別**
+const suggestedCategories = computed(() => {
+  if (!budgetExceeded.value) return [];
+  return Object.entries(categorySpending.value)
+    .sort((a, b) => b[1] - a[1])
+    .map(([category]) => category)
+    .slice(0, 2);
+});
+
+// 🔥 **過濾當月的預算歷史**
+const filteredBudgetHistory = computed(() => {
+  return budgetHistory.value ? budgetHistory.value.filter(entry => entry.month === selectedMonth.value) : [];
+});
+
+// **更新預算**
+const updateBudget = () => {
   if (selectedPercentage.value === "custom") {
     budget.value = customBudget.value;
   } else {
     budget.value = (totalIncome.value * (parseInt(selectedPercentage.value) / 100)).toFixed(0);
   }
 
-  // ✅ 先讀取已存的 budgetHistory，確保不會覆蓋
-  const savedHistory = localStorage.getItem('budgetHistory');
-  let historyData = savedHistory ? JSON.parse(savedHistory) : [];
+  saveBudgetHistory(userId.value); // 🔥 存入 Firestore
+};
 
-  // ✅ 找到當前月份的紀錄，確保不會覆蓋過去的數據
-  const existingIndex = historyData.findIndex(entry => entry.month === selectedMonth.value);
+// 🔥 **將預算紀錄存入 Firestore**
+const saveBudgetHistory = async (userId) => {
+  if (!userId) return;
+
   const historyEntry = {
     month: selectedMonth.value,
     income: totalIncome.value,
@@ -159,50 +202,35 @@
     overBudget: totalExpense.value > budget.value
   };
 
-  if (existingIndex !== -1) {
-    historyData[existingIndex] = historyEntry; // **更新當月的數據**
-  } else {
-    historyData.push(historyEntry); // **新增新月份的數據**
+  try {
+    await setDoc(doc(db, 'users', userId, 'budgetHistory', selectedMonth.value), historyEntry);
+    console.log("✅ Firestore 預算歷史更新成功:", historyEntry);
+  } catch (error) {
+    console.error('🔥 Firestore 預算歷史存儲錯誤:', error);
   }
-
-  // ✅ 儲存完整的 budgetHistory，而不只是單個月份
-  localStorage.setItem('budgetHistory', JSON.stringify(historyData));
-  budgetHistory.value = historyData; // ✅ 立即更新畫面
 };
 
-
-
-
-  
-  // **載入歷史與記錄**
-  onMounted(() => {
-  const savedRecords = localStorage.getItem('records');
-  if (savedRecords) {
-    records.value = JSON.parse(savedRecords);
-  }
-
-  // ✅ 讀取完整的 `budgetHistory`
-  const savedHistory = localStorage.getItem('budgetHistory');
-  if (savedHistory) {
-    budgetHistory.value = JSON.parse(savedHistory);
-  }
-
-  // ✅ 讀取當前月份的 `budget`
-  const savedBudget = localStorage.getItem(`budget_${selectedMonth.value}`);
-  if (savedBudget) {
-    budget.value = parseFloat(savedBudget);
-  } else {
-    budget.value = 0; // **避免 NaN**
-  }
-
-  updateBudget(); // ✅ 確保預算記錄正確
+// **載入 Firestore 資料**
+onMounted(() => {
+  const auth = getAuth();
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      userId.value = user.uid;
+      fetchRecords(user.uid);
+      fetchBudgetHistory(user.uid);
+    } else {
+      console.warn("⚠️ 尚未登入，無法讀取 Firestore 記帳資料");
+    }
+  });
 });
 
-
-
-
-
-
+// 🔥 **當月份變更時，自動更新資料**
+watch(selectedMonth, async () => {
+  if (userId.value) {
+    await fetchRecords(userId.value);
+    await fetchBudgetHistory(userId.value);
+  }
+});
 
   </script>
   

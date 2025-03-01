@@ -1,240 +1,228 @@
 <template>
-  <div id="binbox">
-    <div id="box">
+  <div id="login-container">
+    <div id="login-box">
       <img src="https://cdn-icons-png.flaticon.com/512/5264/5264565.png" alt="logo" id="logo" />
 
-      <label for="accont">帳號:
-        <input type="text" name="accont" id="accont" v-model="username" placeholder="帳號" @keyup.enter="login" />
-      </label>
+      <div class="marquee-wrapper">
+  <div class="marquee-content">
+    <h2>歡迎使用 記帳系統 🎉 歡迎使用 記帳系統 🎉</h2>
+  </div>
+</div>
 
-      <label for="password">密碼:
-        <input type="password" name="password" id="password" v-model="password" placeholder="密碼" @keyup.enter="login" />
-      </label>
 
-      <button id="login" @click="login">登入</button>
+
+      <button id="google-login" @click="googleLogin">使用 Google 登入</button>
       <button id="guest-mode" @click="guestLogin">訪客模式</button>
-
-      <!-- ✅ Google 登入按鈕 -->
-      <div id="googleSignInButton"></div>
     </div>
   </div>
 </template>
-  
+
+<script setup>
+import { useRouter } from "vue-router";
+import { auth, provider, signInWithPopup } from "../firebase";
+import { getAuth, signInAnonymously } from "firebase/auth";
+
+const router = useRouter();
+
+const googleLogin = async () => {
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // ✅ 儲存 Google 使用者資訊
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("userId", user.uid);
+    localStorage.setItem("userName", user.displayName);
+
+    console.log("✅ Google 登入成功:", user);
+
+    // 🔹 跳轉到記帳頁面
+    router.push("/dashboard");
+  } catch (error) {
+    console.error("❌ Google 登入失敗:", error);
+  }
+};
+
+// ✅ Firebase 匿名登入
+const guestLogin = async () => {
+  console.log("🚀 訪客模式登入中...");
+
+  try {
+    const userCredential = await signInAnonymously(auth);
+    const user = userCredential.user;
+
+    console.log("✅ 訪客登入成功，UID:", user.uid);
+
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("userRole", "guest");
+    localStorage.setItem("userId", user.uid); // ✅ 記錄 Firebase 訪客 UID
+
+    await router.push("/dashboard");
+  } catch (error) {
+    console.error("❌ 訪客登入失敗:", error);
+  }
+};
+</script>
+
+<script>
+export default {
+  methods: {
+    googleLogin() {
+      alert("Google 登入");
+    },
+    guestLogin() {
+      alert("訪客模式登入");
+    },
+  },
+};
+</script>
 
 <style scoped>
-/* 讓畫面置中，並使用漸層背景 */
-#binbox {
+
+/* 背景動態變化 */
+@keyframes gradientBG {
+  0% { background: linear-gradient(135deg, #f0f0f0, #dfe9f3); }
+  50% { background: linear-gradient(135deg, #e0eafc, #cfdef3); }
+  100% { background: linear-gradient(135deg, #f0f0f0, #dfe9f3); }
+}
+
+#login-container {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  padding: 20px;
-  background: linear-gradient(135deg, #f0f0f0, #dfe9f3);
+  animation: gradientBG 5s infinite alternate;
 }
 
-/* 登入框 */
-#box {
+/* 登入框進場動畫 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(80px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#login-box {
   width: 90%;
-  max-width: 400px;
+  max-width: 350px;
   background-color: #ffffff;
-  border-radius: 15px;
-  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2);
-  color: #333;
-  font-size: 18px;
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 25px;
-  transition: transform 0.3s ease-in-out;
+  text-align: center;
+  animation: fadeInUp 0.8s ease-out;
 }
 
-#box:hover {
-  transform: scale(1.02);
+/* Logo 旋轉縮放進場 */
+@keyframes logoEntry {
+  0% { transform: scale(0.5) rotate(-10deg); opacity: 0; }
+  50% { transform: scale(1.1) rotate(5deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
 }
 
-/* Logo 圖片 */
 #logo {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
   margin-bottom: 15px;
-  cursor: pointer;
-  transition: transform 0.3s ease-in-out;
+  animation: logoEntry 0.8s ease-out;
 }
 
-#logo:hover {
-  transform: scale(1.1);
+.marquee-wrapper {
+  width: 100%; /* 滿版寬度 */
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  background: #fff; /* 讓背景不透 */
 }
 
-/* 輸入框與標籤 */
-#box label {
-  width: 100%;
+.marquee-content {
   display: flex;
-  flex-direction: column;
-  font-size: 16px;
-  margin-bottom: 12px;
-  font-weight: 500;
+  min-width: 200%; /* 讓內容寬度為 2 倍，確保無縫銜接 */
+  animation: marqueeLoop 10s linear infinite;
 }
 
-#box input {
-  border-radius: 8px;
-  font-size: 16px;
-  padding: 10px;
-  border: 1px solid #ccc;
+@keyframes marqueeLoop {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); } /* 只移動 50% 確保無縫接軌 */
+}
+
+
+
+/* 按鈕基礎設計 */
+#google-login,
+#guest-mode {
   width: 100%;
-  box-sizing: border-box;
-  transition: border 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-}
-
-#box input:focus {
-  border-color: #4a90e2;
-  box-shadow: 0px 0px 8px rgba(74, 144, 226, 0.4);
-  outline: none;
-}
-
-/* 登入按鈕 */
-#login {
-  display: block;
+  padding: 12px;
+  margin: 8px 0;
   border: none;
   border-radius: 8px;
-  width: 100%;
-  max-width: 300px;
-  text-align: center;
-  padding: 12px;
+  font-size: 16px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 16px;
   transition: all 0.3s ease-in-out;
-  background-color: #4a90e2;
-  color: white;
-  text-decoration: none;
-  margin-top: 15px;
-  box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.1);
 }
 
-#login:hover {
-  background-color: #357abd;
-  box-shadow: 0px 5px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
+@keyframes buttonFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-/* 訪客模式按鈕（右上角） */
+
+/* Google 按鈕 */
+#google-login {
+  background-color: #4285f4;
+  color: white;
+  animation: buttonFadeIn 0.6s ease-out 0.5s both;
+}
+#google-login:hover {
+  background-color: #357ae8;
+}
+
+/* 訪客模式按鈕 */
 #guest-mode {
-  position: absolute;
-  margin: 0px 0px 0px 220px;
-  /* width: 100px; */
   background-color: #6c757d;
   color: white;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: 0.3s;
+  animation: buttonFadeIn 0.6s ease-out 0.7s both;
 }
-
 #guest-mode:hover {
   background-color: #495057;
 }
 
+/* 按鈕點擊回饋動畫 */
+#google-login:active,
+#guest-mode:active {
+  transform: scale(0.95);
+}
+
+@keyframes bounceBack {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+#google-login:focus,
+#guest-mode:focus {
+  animation: bounceBack 0.3s ease-out;
+}
+
 /* 響應式設計 */
-@media (max-width: 768px) {
-  #box {
-    width: 95%;
+@media (max-width: 480px) {
+  #login-box {
+    width: 90%;
     padding: 20px;
-  }
-
-  #logo {
-    width: 80px;
-    height: 80px;
-  }
-
-  #box input {
-    font-size: 14px;
-    padding: 8px;
-  }
-
-  #login {
-    font-size: 15px;
-    padding: 10px;
   }
 }
 
 </style>
-
-
-  
-<script setup>
-import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
-
-const username = ref("");
-const password = ref("");
-const router = useRouter();
-const clientId = "188944110530-5dupttvorlfgbb87455u0mueat8ov8qv.apps.googleusercontent.com"; // ✅ 替換成你的 Client ID
-
-// ✅ 進入頁面時檢查是否已登入
-onMounted(() => {
-  const isLoggedIn = localStorage.getItem("isLoggedIn");
-  if (isLoggedIn === "true") {
-    router.push("/dashboard"); // 已登入，跳轉到儀表板
-  }
-
-  // ✅ 確保 `google` 物件存在
-  if (window.google && window.google.accounts) {
-    google.accounts.id.initialize({
-      client_id: clientId,
-      callback: handleCredentialResponse,
-    });
-
-    google.accounts.id.renderButton(
-      document.getElementById("googleSignInButton"),
-      { theme: "outline", size: "large" }
-    );
-  } else {
-    console.error("Google SDK 未載入，請確認 `index.html` 是否包含 `gsi/client`");
-  }
-});
-
-// ✅ Google 登入回調函式
-const handleCredentialResponse = (response) => {
-  console.log("Google 登入成功:", response);
-
-  // 解析 Google JWT Token
-  const userData = JSON.parse(atob(response.credential.split(".")[1]));
-  console.log("Google 使用者:", userData);
-
-  // ✅ 儲存登入狀態
-  localStorage.setItem("isLoggedIn", "true");
-  localStorage.setItem("userRole", "google");
-  localStorage.setItem("userName", userData.name);
-
-  // ✅ 跳轉至 Dashboard
-  router.push("/dashboard");
-};
-
-// ✅ 手動帳密登入
-const login = () => {
-  const userData = { username: "admin", password: "1234" };
-
-  if (username.value === userData.username && password.value === userData.password) {
-    alert("登入成功！");
-
-    // ✅ 儲存登入狀態
-    localStorage.setItem("isLoggedIn", "true");
-
-    router.push("/dashboard"); // ✅ 跳轉
-  } else {
-    alert("帳號或密碼錯誤");
-  }
-};
-
-// ✅ 訪客模式登入
-const guestLogin = () => {
-  alert("以訪客模式登入！");
-  localStorage.setItem("isLoggedIn", "true");
-  localStorage.setItem("userRole", "guest"); // ✅ 設定訪客身份
-  router.push("/dashboard");
-};
-</script>
-
-
-  

@@ -3,10 +3,9 @@
     <div class="left-section">
       <div class="box">
         <h2>新增記帳</h2>
-        <!-- ✅ 新增總金額顯示 -->
         <div class="total-amount">總金額：{{ totalAmount }} 元</div>
+
         <form @submit.prevent="addRecord" class="form">
-          
           <div class="form-group">
             <label>金額：
               <input type="number" v-model="amount" required class="input-field" />
@@ -15,27 +14,26 @@
 
           <div class="form-group">
             <label>類別：
-              <select v-model="category" class="input-field">
+              <select v-model="category" class="input-field" @change="loadCategories">
                 <option value="income">收入</option>
                 <option value="expense">支出</option>
               </select>
             </label>
           </div>
 
-          <!-- 📌 類別選擇 -->
           <div class="form-group">
             <label>類別細項：
               <select v-model="subCategory" class="input-field" @change="checkNewCategory">
                 <option v-for="option in availableCategories" :key="option" :value="option">{{ option }}</option>
-                <option value="new">+ 新增類別</option> <!-- 這是新增的選項 -->
+                <option value="new">+ 新增類別</option>
               </select>
             </label>
           </div>
 
-          <!-- 📌 當選擇「新增類別」時，顯示輸入框 -->
           <div class="form-group" v-if="showNewCategoryInput">
             <label>新類別名稱：
-              <input type="text" v-model="newCategory" class="input-field" @keyup.enter="addNewCategory" placeholder="輸入新類別名稱..." />
+              <input type="text" v-model="newCategory" class="input-field" placeholder="輸入新類別名稱..." />
+              <button type="button" class="add-category-btn" @click="addNewCategory">新增</button>
             </label>
           </div>
 
@@ -53,204 +51,190 @@
 
           <button type="submit" class="submit-btn">新增記帳</button>
         </form>
-        <!-- 📌 搜尋 & 篩選 -->
-      <div class="box">
-        <h3>篩選記帳紀錄</h3>
-        <div class="form-group">
-          <label>篩選月份：</label>
-          <input type="month" v-model="selectedMonth" @change="updateFilteredRecords" class="input-field" />
-        </div>
-        <div class="form-group">
-          <label>搜尋：</label>
-          <input type="text" v-model="searchQuery" placeholder="搜尋金額或備註..." class="input-field" />
-        </div>
-        <div class="form-group">
-          <label>類別篩選：</label>
-          <select v-model="filterCategory" class="input-field">
-            <option value="">全部</option>
-            <option value="income">收入</option>
-            <option value="expense">支出</option>
-          </select>
-        </div>
       </div>
 
       <div class="box">
         <h3>記帳紀錄</h3>
         <ul class="record-list">
-          <li v-for="(record, index) in filteredRecords" :key="index" class="record-item">
-            <div class="record-entry">{{ record.date }}</div>
-            <div class="record-entry">{{ record.category === 'income' ? '收入' : '支出' }} - {{ record.subCategory }}: {{ record.amount }} 元</div>
-            <div class="record-entry">{{ record.note }}</div>
-            <button class="delete-btn" @click="deleteRecord(index)">刪除</button>
+          <li v-for="record in records" :key="record.id" class="record-item">
+            <div>{{ record.date }} - {{ record.subCategory }}: {{ record.amount }} 元</div>
+            <div>{{ record.note }}</div>
+            <button class="delete-btn" @click="deleteRecord(record.id)">刪除</button>
           </li>
         </ul>
-      </div>
       </div>
     </div>
   </div>
 </template>
 
-
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import Chart from 'chart.js/auto';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { ref, onMounted, computed, watch } from "vue";
+import { getFirestore, collection, doc, addDoc, deleteDoc, getDoc, setDoc, getDocs,onSnapshot  } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { useRouter } from "vue-router";
 
-// **記帳輸入值**
-const amount = ref('');
-const category = ref('income'); // 預設收入
-const subCategory = ref('');
-const newCategory = ref('');
-const showNewCategoryInput = ref(false);
-const date = ref('');
-const note = ref('');
-const records = ref([]);
-const searchQuery = ref('');
-const filterCategory = ref('');
-const selectedMonth = ref(new Date().toISOString().slice(0, 7));
+const db = getFirestore();
+const auth = getAuth();
+const router = useRouter();
 
-// **預設類別**
 const defaultIncomeCategories = ["薪資", "投資", "獎金", "其他"];
 const defaultExpenseCategories = ["飲食", "交通", "娛樂", "醫療", "購物", "房租", "其他"];
-// **從 localStorage 讀取用戶自訂類別**
+
+const amount = ref("");
+const category = ref("income");
+const subCategory = ref("");
+const newCategory = ref("");
+const showNewCategoryInput = ref(false);
+const date = ref("");
+const note = ref("");
+const records = ref([]);
+const userId = ref(null);
+
 const incomeCategories = ref([]);
 const expenseCategories = ref([]);
+const availableCategories = ref([]);
 
-onMounted(() => {
-  const savedRecords = localStorage.getItem('records');
-  if (savedRecords) {
-    records.value = JSON.parse(savedRecords);
+// **載入使用者資料**
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    userId.value = user.uid;
+    console.log("✅ 使用者登入:", user.uid);
+    
+    await initializeCategories(user.uid);
+    loadCategories(); // 🔥 監聽類別變更
+    await loadRecords();
+  } else {
+    console.log("❌ 未登入");
+  }
+});
+
+// **監聽 `category` 變更，確保類別更新**
+watch(category, async () => {
+  if (userId.value) {
+    await loadCategories();
+  }
+});
+
+// **初始化類別**
+async function initializeCategories(userId) {
+  const incomeRef = doc(db, "users", userId, "categories", "income");
+  const expenseRef = doc(db, "users", userId, "categories", "expense");
+
+  const incomeDoc = await getDoc(incomeRef);
+  const expenseDoc = await getDoc(expenseRef);
+
+  if (!incomeDoc.exists()) {
+    await setDoc(incomeRef, { list: defaultIncomeCategories });
+    console.log("✅ 初始化收入類別");
   }
 
-  // 讀取 localStorage 中的自訂類別
-  const savedIncomeCategories = localStorage.getItem('incomeCategories');
-  incomeCategories.value = savedIncomeCategories ? JSON.parse(savedIncomeCategories) : [...defaultIncomeCategories];
+  if (!expenseDoc.exists()) {
+    await setDoc(expenseRef, { list: defaultExpenseCategories });
+    console.log("✅ 初始化支出類別");
+  }
+}
 
-  const savedExpenseCategories = localStorage.getItem('expenseCategories');
-  expenseCategories.value = savedExpenseCategories ? JSON.parse(savedExpenseCategories) : [...defaultExpenseCategories];
-});
+// **讀取 Firestore 類別**
+// **讀取 & 監聽 Firestore 類別**
+const loadCategories = async () => {
+  if (!userId.value) return;
 
-// **動態選擇對應的類別**
-const availableCategories = computed(() => {
-  return category.value === 'income' ? incomeCategories.value : expenseCategories.value;
-});
-// **計算記帳總金額（收入 - 支出）**
+  const categoryDoc = doc(db, "users", userId.value, "categories", category.value);
+
+  // ✅ Firestore 變更時，自動更新類別
+  onSnapshot(categoryDoc, (docSnap) => {
+    if (docSnap.exists()) {
+      const categories = docSnap.data().list || [];
+
+      if (category.value === "income") {
+        incomeCategories.value = categories;
+      } else {
+        expenseCategories.value = categories;
+      }
+
+      availableCategories.value = [...categories];
+      console.log("🔥 類別已更新:", categories);
+    } else {
+      console.log("⚠️ 類別文件不存在，初始化...");
+      initializeCategories(userId.value);
+    }
+  });
+};
+
+// **讀取 Firestore 記帳紀錄**
+const loadRecords = async () => {
+  if (!userId.value) return;
+
+  const querySnapshot = await getDocs(collection(db, "users", userId.value, "records"));
+  records.value = querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+};
+
+// **計算總金額**
 const totalAmount = computed(() => {
-  return records.value.reduce((sum, record) => {
-    return record.category === 'income' 
-      ? sum + record.amount  // 收入加總
-      : sum - record.amount; // 支出扣除
-  }, 0);
+  return records.value.reduce((sum, record) => record.category === "income" ? sum + record.amount : sum - record.amount, 0);
 });
-
 
 // **檢查是否選擇「新增類別」**
 const checkNewCategory = () => {
-  if (subCategory.value === "new") {
-    showNewCategoryInput.value = true;
-    newCategory.value = "";
+  showNewCategoryInput.value = subCategory.value === "new";
+};
+
+// **新增類別**
+const addNewCategory = async () => {
+  if (!newCategory.value.trim()) return;
+
+  const categoryDoc = doc(db, "users", userId.value, "categories", category.value);
+  const docSnap = await getDoc(categoryDoc);
+
+  let updatedCategories = docSnap.exists() ? [...docSnap.data().list, newCategory.value.trim()] : [newCategory.value.trim()];
+  await setDoc(categoryDoc, { list: updatedCategories });
+
+  if (category.value === "income") {
+    incomeCategories.value = updatedCategories;
   } else {
-    showNewCategoryInput.value = false;
+    expenseCategories.value = updatedCategories;
   }
+  
+
+  subCategory.value = newCategory.value.trim();
+  newCategory.value = "";
+  showNewCategoryInput.value = false;
 };
-
-// **新增自訂類別**
-const addNewCategory = () => {
-  if (newCategory.value.trim() !== "" && !availableCategories.value.includes(newCategory.value)) {
-    if (category.value === "income") {
-      incomeCategories.value.push(newCategory.value);
-      localStorage.setItem('incomeCategories', JSON.stringify(incomeCategories.value));
-    } else {
-      expenseCategories.value.push(newCategory.value);
-      localStorage.setItem('expenseCategories', JSON.stringify(expenseCategories.value));
-    }
-
-    // **將 subCategory 設為新類別**
-    subCategory.value = newCategory.value;
-    showNewCategoryInput.value = false;
-  }
-};
-// **計算篩選後的記帳紀錄**
-const filteredRecords = computed(() => {
-  return records.value.filter(record => {
-    const keyword = searchQuery.value.trim().toLowerCase(); // ✅ 去除前後空白並轉小寫
-    const matchesSearch =
-      keyword === '' ||
-      record.note.toLowerCase().includes(keyword) ||  // ✅ 忽略大小寫比對 `note`
-      record.subCategory.toLowerCase().includes(keyword) || // ✅ 在類別細項中搜尋
-      record.amount.toString().includes(keyword); // ✅ 在金額內搜尋
-
-    const matchesCategory = filterCategory.value === '' || record.category === filterCategory.value;
-    
-    return matchesSearch && matchesCategory && record.date.startsWith(selectedMonth.value);
-  });
-});
-
 
 // **新增記帳**
-const addRecord = () => {
+const addRecord = async () => {
   if (!amount.value || !date.value || !subCategory.value) {
-    alert("⚠️ 請填寫完整的記帳資料！");
-    return;
-  }
-
-  // ✅ 如果使用者選擇 "new"，則替換為輸入的 `newCategory`
-  let finalCategory = subCategory.value === "new" ? newCategory.value.trim() : subCategory.value;
-
-  if (!finalCategory) {
-    alert("⚠️ 類別名稱不能為空！");
+    alert("請填寫完整的記帳資料！");
     return;
   }
 
   const newRecord = {
     amount: parseFloat(amount.value),
     category: category.value,
-    subCategory: finalCategory, // ✅ 使用正確的類別名稱
+    subCategory: subCategory.value,
     date: date.value,
     note: note.value,
   };
 
-  // ✅ 更新記帳紀錄
-  records.value.push(newRecord);
-  localStorage.setItem('records', JSON.stringify(records.value));
+  const docRef = await addDoc(collection(db, "users", userId.value, "records"), newRecord);
+  records.value.push({ id: docRef.id, ...newRecord });
 
-  // ✅ 若有新增類別，確保記錄進 `localStorage`
-  if (!availableCategories.value.includes(finalCategory)) {
-    if (category.value === "income") {
-      incomeCategories.value.push(finalCategory);
-      localStorage.setItem('incomeCategories', JSON.stringify(incomeCategories.value));
-    } else {
-      expenseCategories.value.push(finalCategory);
-      localStorage.setItem('expenseCategories', JSON.stringify(expenseCategories.value));
-    }
-  }
-
-  // ✅ 清空輸入欄位
-  amount.value = '';
-  subCategory.value = '';
-  newCategory.value = '';
-  date.value = '';
-  note.value = '';
-  showNewCategoryInput.value = false;
-
-  // ✅ 顯示通知
   alert("✅ 記帳成功！");
-
-  // ✅ 重新載入過濾後的記錄
-  updateFilteredRecords();
-  
-  
+  amount.value = "";
+  subCategory.value = "";
+  date.value = "";
+  note.value = "";
 };
-
 
 // **刪除記帳**
-const deleteRecord = (index) => {
-  records.value.splice(index, 1);
-  localStorage.setItem('records', JSON.stringify(records.value));
+const deleteRecord = async (id) => {
+  await deleteDoc(doc(db, "users", userId.value, "records", id));
+  records.value = records.value.filter(record => record.id !== id);
 };
-
 </script>
-
 
 <style scoped>
 .main-container {

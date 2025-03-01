@@ -19,13 +19,12 @@
     <!-- 📌 主要內容區 -->
     <div class="content">
       <header>
-        <h2>歡迎來到後台！</h2>
+       
       </header>
 
       <main>
         <div v-if="currentView === 'home'">
-          <h2>🏠 首頁</h2>
-          <p>歡迎來到記帳系統！</p>
+
           <Calendar></Calendar>
         </div>
 
@@ -52,28 +51,29 @@
           <p>{{ shortcut.name }}</p>
         </li>
         <!-- ✅ 新增登出按鈕 -->
-    <li @click="logout">
-      <span>🚪</span>
-      <p>登出</p>
-    </li>
+        <li @click="logout">
+          <span>🚪</span>
+          <p>登出</p>
+        </li>
       </ul>
     </nav>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
 import AddAccounting from './AddAccounting.vue';
 import ReportPage from './ReportPage.vue';
-import DashboardSummary from './DashboardSummary.vue'; // 新增「月結餘」組件
+import DashboardSummary from './DashboardSummary.vue';
 import Calendar from './Calendar.vue';
+
 const router = useRouter();
+const auth = getAuth();
 const isMenuOpen = ref(false);
 const currentView = ref('home'); // 預設顯示首頁
-
-// ✅ 修正 isMobile，確保動態變更
-const isMobile = ref(window.innerWidth < 768);
+const isMobile = ref(window.innerWidth < 768); // ✅ 修正動態偵測
 
 const shortcuts = ref([
   { name: '首頁', icon: '🏠', view: 'home' },
@@ -86,22 +86,49 @@ const changeView = (view) => {
   currentView.value = view;
 };
 
-// ✅ 修正 Logout，確保狀態刷新
-const logout = () => {
-  localStorage.removeItem('isLoggedIn');
-  router.push('/');
-  location.reload();
+// ✅ 修正 Logout，確保 Firebase 立即登出
+const logout = async () => {
+  console.log("🚪 正在登出...");
+
+  try {
+    await signOut(auth); // 🔹 確保 Firebase 也登出
+    console.log("✅ Firebase 已登出");
+
+    // 🔥 清除所有本地儲存資料
+    localStorage.clear();
+    
+    // ✅ 監聽 Firebase 確保登出成功後跳轉
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        console.log("🔄 Firebase 確認登出，跳轉回登入頁");
+        router.push("/");
+      }
+    });
+  } catch (error) {
+    console.error("❌ 登出失敗:", error);
+  }
 };
 
 // ✅ 確保 isMobile 可動態更新
 onMounted(() => {
-  window.addEventListener('resize', () => {
+  window.addEventListener("resize", () => {
     isMobile.value = window.innerWidth < 768;
   });
 
-  const isLoggedIn = localStorage.getItem('isLoggedIn');
-  if (isLoggedIn !== 'true') {
-    router.push('/');
+  // ✅ 監聽 Firebase 登入狀態
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      console.log("❌ 未登入，回到首頁");
+      router.push("/");
+    } else {
+      console.log("✅ 使用者已登入:", user.uid);
+    }
+  });
+
+  // ✅ 檢查 LocalStorage 確保使用者狀態
+  const isLoggedIn = localStorage.getItem("isLoggedIn");
+  if (!isLoggedIn) {
+    router.push("/");
   }
 });
 </script>
@@ -111,46 +138,42 @@ onMounted(() => {
 .container {
   display: flex;
   height: 100vh;
-  
 }
 
 /* 桌機版左側導覽列 */
 .sidebar {
-  width: 150px;
-  background-color: #2c3e50;
+  width: 200px; 
+  background-color: #34495e;
   color: white;
-  padding: 20px;
+  padding: 15px;
   height: 100vh;
   position: fixed;
   left: 0;
   top: 0;
   overflow-y: auto;
-  transition: transform 0.3s ease-in-out;
-}
-
-.sidebar ul {
-  list-style: none;
-  padding: 0;
+  transition: width 0.3s ease-in-out;
+  box-sizing: border-box; /* 避免 padding 影響寬度 */
 }
 
 .sidebar ul li {
-  margin-bottom: 10px;
-  cursor: pointer;
-  padding: 10px;
-  border-radius: 5px;
-  transition: background 0.3s;
+  padding: 12px;
+  font-size: 16px; /* 提高字體可讀性 */
 }
 
 .sidebar ul li:hover,
 .sidebar ul li.active {
-  background: #1abc9c;
+  background: #16a085; /* 改為更亮眼的綠色 */
+  transform: scale(1.05); /* 增加 hover 放大效果 */
+  transition: all 0.2s ease-in-out;
 }
+
 
 /* 主要內容區 */
 .content {
-  flex-grow: 1;
-  margin-left: 200px;
-  padding: 0px 0px 100px 0px ;
+  margin-left: 200px; /* 確保與 Sidebar 一致 */
+  width: 100%;
+  padding: 20px;
+  transition: margin-left 0.3s ease-in-out;
 }
 
 /* 📌 手機版底部導航列 */
@@ -165,6 +188,7 @@ onMounted(() => {
   justify-content: space-around;
   align-items: center;
   border-top: 2px solid #1abc9c;
+  padding: 15px 0; /* 增加上下內邊距 */
 }
 
 .bottom-nav ul {
@@ -174,6 +198,8 @@ onMounted(() => {
   padding: 0;
   margin: 0;
   list-style: none;
+  padding: 10px; /* 增加點擊區域 */
+  font-size: 16px;
 }
 
 .bottom-nav li {
@@ -195,7 +221,8 @@ onMounted(() => {
 
 .bottom-nav li span {
   display: block;
-  font-size: 20px;
+  font-size: 24px;
+  
 }
 
 .bottom-nav li p {
@@ -203,15 +230,17 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* 📌 RWD 響應式設計 */
+/* 📌 RWD 響應式修正 */
 @media (max-width: 768px) {
   .sidebar {
-    display: none;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
   }
 
+
   .content {
-    margin-left: 0;
-    padding-bottom: 80px; /* 預留空間給底部導覽列 */
+    margin-left: auto;
+    padding-bottom: 80px;
   }
 }
 </style>
